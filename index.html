@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋 - Gomoku</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 五子棋</h1>
+        
+        <!-- 游戏控制区 -->
+        <div class="controls">
+            <div class="mode-selector">
+                <label>游戏模式：</label>
+                <select id="gameMode">
+                    <option value="pvp">双人对战</option>
+                    <option value="pve" selected>人机对战</option>
+                </select>
+            </div>
+            
+            <div class="game-info">
+                <span id="currentPlayer">当前：黑棋</span>
+                <span id="gameStatus"></span>
+            </div>
+            
+            <button id="restartBtn" class="btn">重新开始</button>
+        </div>
+        
+        <!-- 棋盘容器 -->
+        <div class="board-container">
+            <canvas id="board" width="600" height="600"></canvas>
+        </div>
+        
+        <!-- 游戏说明 -->
+        <div class="instructions">
+            <h3>游戏规则：</h3>
+            <ul>
+                <li>黑棋先行，双方轮流落子</li>
+                <li>先连成五子（横、竖、斜）者获胜</li>
+                <li>点击棋盘交叉点落子</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script src="js/board.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
