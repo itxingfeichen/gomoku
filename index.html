@@ -786,24 +786,32 @@
             }
 
             getBestMove() {
-                const scores = [];
                 const availableMoves = this.board
                     .map((cell, i) => cell === null ? i : -1)
                     .filter(i => i !== -1);
 
                 if (availableMoves.length === 0) return null;
 
+                // 计算每个位置的分数
+                const moveScores = [];
                 for (const move of availableMoves) {
-                    scores[move] = this.evaluateMove(move);
+                    moveScores.push({
+                        move: move,
+                        score: this.evaluateMove(move)
+                    });
                 }
 
                 const difficultyConfig = GAME_CONFIG.difficulty[this.difficulty];
-                const maxScore = Math.max(...scores);
-                const bestMoves = scores
-                    .map((score, i) => score >= maxScore - difficultyConfig.randomFactor ? i : -1)
-                    .filter(i => i !== -1);
+                const maxScore = Math.max(...moveScores.map(ms => ms.score));
+                
+                // 选择最佳位置（带随机性）
+                const bestMoves = moveScores
+                    .filter(ms => ms.score >= maxScore - difficultyConfig.randomFactor)
+                    .map(ms => ms.move);
 
-                return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+                const selectedMove = bestMoves[Math.floor(Math.random() * bestMoves.length)];
+                console.log('🤖 最佳位置分数:', maxScore, '可选位置数:', bestMoves.length, '最终选择:', selectedMove);
+                return selectedMove;
             }
 
             evaluateMove(move) {
