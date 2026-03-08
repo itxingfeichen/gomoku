@@ -194,19 +194,23 @@ class GitHubAPI {
     }
   }
   
-  async submitGameResult(result, moves, duration) {
+  async submitGameResult(result, moves, duration, gameMode = 'pve', difficulty = 'medium') {
     const timestamp = new Date().toISOString();
+    const difficultyName = GAME_CONFIG.difficulty[difficulty] ? GAME_CONFIG.difficulty[difficulty].name : difficulty;
     const stats = JSON.stringify({
       result,
       moves,
       duration,
       timestamp,
-      difficulty: GAME_CONFIG.difficulty[document.getElementById('difficulty').value].name,
+      gameMode: gameMode === 'pve' ? '人机对战' : '双人对战',
+      difficulty: difficultyName,
     }, null, 2);
     
     // 提交到 game-results 目录
     const fileName = `game-results/${timestamp.replace(/[:.]/g, '-')}.json`;
-    return await this.updateFile(fileName, stats, `🎮 游戏结果：${result === 'win' ? '胜利' : result === 'loss' ? '失败' : '平局'}`);
+    const resultText = result === 'win' ? '胜利' : result === 'loss' ? '失败' : '平局';
+    const modeText = gameMode === 'pve' ? `(${difficultyName})` : '(PVP)';
+    return await this.updateFile(fileName, stats, `🎮 游戏结果：${resultText} ${modeText}`);
   }
   
   async updateStats(stats) {

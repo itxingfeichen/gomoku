@@ -51,7 +51,7 @@ class Game {
             
             // 人机模式下，AI 自动落子
             if (this.gameMode === 'pve' && !this.gameOver) {
-                setTimeout(() => this.aiMove(), 300);
+                setTimeout(() => this.aiMove(), GAME_CONFIG?.game?.aiDelay || 300);
             }
         }
     }
