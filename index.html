@@ -634,6 +634,10 @@
             }
 
             reset() {
+                // 保存当前 gameMode（因为可能被切换过）
+                const savedMode = this.gameMode;
+                const savedDifficulty = this.difficulty;
+                
                 this.board = Array(this.boardSize * this.boardSize).fill(null);
                 this.currentPlayer = 'black';
                 this.gameOver = false;
@@ -641,12 +645,24 @@
                 this.moveCount = 0;
                 this.startTime = new Date();
                 
+                // 恢复 gameMode 和 difficulty
+                this.gameMode = savedMode;
+                this.difficulty = savedDifficulty;
+                
                 document.querySelectorAll('.cell').forEach(cell => {
                     cell.innerHTML = '';
                 });
                 
                 document.getElementById('overlay').classList.remove('active', 'win', 'lose');
+                
+                // 同步 UI 状态
+                const modeSelect = document.getElementById('gameMode');
+                if (modeSelect) {
+                    modeSelect.value = this.gameMode;
+                }
+                
                 this.updateStatus();
+                this.updateModeUI();
             }
 
             updateStatus() {
@@ -756,10 +772,16 @@
 
             aiMove() {
                 if (this.gameOver) return;
+                
+                console.log('🤖 AI 开始思考，gameMode:', this.gameMode, 'currentPlayer:', this.currentPlayer);
 
                 const move = this.getBestMove();
+                console.log('🤖 AI 选择落子位置:', move);
+                
                 if (move !== null) {
                     this.makeMove(move);
+                } else {
+                    console.warn('⚠️ AI 没有找到可落子的位置');
                 }
             }
 
