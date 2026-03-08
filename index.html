@@ -146,13 +146,75 @@
             position: relative;
             z-index: 10;
             box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            animation: placeStone 0.3s ease-out;
+            animation: placeStone 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         @keyframes placeStone {
-            0% { transform: scale(0); }
-            50% { transform: scale(1.2); }
-            100% { transform: scale(1); }
+            0% { 
+                transform: scale(0) rotate(0deg);
+                opacity: 0;
+            }
+            60% { 
+                transform: scale(1.15) rotate(180deg);
+                opacity: 1;
+            }
+            100% { 
+                transform: scale(1) rotate(360deg);
+                opacity: 1;
+            }
+        }
+
+        /* 落子涟漪效果 */
+        .ripple {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
+            transform: translate(-50%, -50%);
+            z-index: 5;
+            animation: rippleEffect 0.6s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes rippleEffect {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 1;
+            }
+            100% {
+                width: 120px;
+                height: 120px;
+                opacity: 0;
+            }
+        }
+
+        /* 落子粒子效果 */
+        .stone-particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            z-index: 8;
+            pointer-events: none;
+            animation: particleBurst 0.5s ease-out forwards;
+        }
+
+        @keyframes particleBurst {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* 棋盘格高亮 */
+        .cell.highlight {
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
         }
 
         .stone.black {
@@ -581,9 +643,58 @@
                 cell.innerHTML = '';
                 cell.appendChild(stone);
 
+                // 创建涟漪效果
+                this.createRipple(index);
+                
+                // 创建粒子爆发效果
+                this.createStoneParticles(index, this.board[index]);
+
                 document.querySelectorAll('.stone.last').forEach(s => {
                     if (s !== stone) s.classList.remove('last');
                 });
+            }
+
+            createRipple(index) {
+                const cell = document.querySelector(`[data-index="${index}"]`);
+                const ripple = document.createElement('div');
+                ripple.className = 'ripple';
+                cell.appendChild(ripple);
+                
+                // 动画结束后移除元素
+                setTimeout(() => ripple.remove(), 600);
+            }
+
+            createStoneParticles(index, player) {
+                const cell = document.querySelector(`[data-index="${index}"]`);
+                const rect = cell.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                // 根据棋子颜色设置粒子颜色
+                const particleColor = player === 'black' 
+                    ? 'rgba(50, 50, 50, 0.8)' 
+                    : 'rgba(255, 255, 255, 0.8)';
+                
+                // 创建 12 个粒子，向四周爆发
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i / 12) * Math.PI * 2;
+                    const distance = 60 + Math.random() * 20;
+                    const tx = Math.cos(angle) * distance;
+                    const ty = Math.sin(angle) * distance;
+                    
+                    const particle = document.createElement('div');
+                    particle.className = 'stone-particle';
+                    particle.style.background = particleColor;
+                    particle.style.left = '50%';
+                    particle.style.top = '50%';
+                    particle.style.setProperty('--tx', `${tx}px`);
+                    particle.style.setProperty('--ty', `${ty}px`);
+                    
+                    cell.appendChild(particle);
+                    
+                    // 动画结束后移除
+                    setTimeout(() => particle.remove(), 500);
+                }
             }
 
             aiMove() {
