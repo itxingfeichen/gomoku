@@ -585,6 +585,9 @@
                 document.getElementById('board').addEventListener('click', (e) => {
                     const cell = e.target.closest('.cell');
                     if (cell && !this.gameOver) {
+                        // PVE 模式下，只有黑棋（玩家）回合可以点击
+                        if (this.gameMode === 'pve' && this.currentPlayer !== 'black') return;
+                        
                         const index = parseInt(cell.dataset.index);
                         this.makeMove(index);
                     }
@@ -643,15 +646,7 @@
                 });
                 
                 document.getElementById('overlay').classList.remove('active', 'win', 'lose');
-                
-                // 确保 gameMode 正确设置
-                const modeSelect = document.getElementById('gameMode');
-                if (modeSelect) {
-                    this.gameMode = modeSelect.value;
-                }
-                
                 this.updateStatus();
-                this.updateModeUI();
             }
 
             updateStatus() {
