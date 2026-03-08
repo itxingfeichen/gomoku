@@ -484,6 +484,13 @@
     
     <div class="controls">
         <div class="control-group">
+            <label for="gameMode">对战模式：</label>
+            <select id="gameMode">
+                <option value="pve" selected>人机对战 (PVE) 🤖</option>
+                <option value="pvp">双人对战 (PVP) 👥</option>
+            </select>
+        </div>
+        <div class="control-group" id="difficultyGroup">
             <label for="difficulty">难度选择：</label>
             <select id="difficulty">
                 <option value="easy">简单 🌟</option>
@@ -542,6 +549,7 @@
                 this.board = [];
                 this.currentPlayer = 'black';
                 this.gameOver = false;
+                this.gameMode = 'pve';  // 'pve' or 'pvp'
                 this.difficulty = 'medium';
                 this.autoSubmit = true;
                 this.lastMove = null;
@@ -556,8 +564,10 @@
                 this.bindEvents();
                 this.reset();
                 this.updateStatsDisplay();
+                this.updateModeUI();
                 console.log('🎮 五子棋游戏已启动');
                 console.log('💡 按 C 键打开 GitHub 配置面板');
+                console.log('💡 按 M 键切换对战模式');
             }
 
             createBoard() {
@@ -580,6 +590,12 @@
                     }
                 });
 
+                document.getElementById('gameMode').addEventListener('change', (e) => {
+                    this.gameMode = e.target.value;
+                    this.updateModeUI();
+                    this.reset();
+                });
+
                 document.getElementById('difficulty').addEventListener('change', (e) => {
                     this.difficulty = e.target.value;
                     this.reset();
@@ -588,6 +604,30 @@
                 document.getElementById('autoSubmit').addEventListener('change', (e) => {
                     this.autoSubmit = e.target.value === 'on';
                 });
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'm' || e.key === 'M') {
+                        this.toggleMode();
+                    }
+                });
+            }
+
+            updateModeUI() {
+                const difficultyGroup = document.getElementById('difficultyGroup');
+                if (this.gameMode === 'pvp') {
+                    difficultyGroup.style.display = 'none';
+                } else {
+                    difficultyGroup.style.display = 'flex';
+                }
+            }
+
+            toggleMode() {
+                const modeSelect = document.getElementById('gameMode');
+                this.gameMode = this.gameMode === 'pve' ? 'pvp' : 'pve';
+                modeSelect.value = this.gameMode;
+                this.updateModeUI();
+                this.reset();
             }
 
             reset() {
@@ -603,7 +643,29 @@
                 });
                 
                 document.getElementById('overlay').classList.remove('active', 'win', 'lose');
-                document.getElementById('status').textContent = '黑棋先行，请落子！';
+                
+                // 确保 gameMode 正确设置
+                const modeSelect = document.getElementById('gameMode');
+                if (modeSelect) {
+                    this.gameMode = modeSelect.value;
+                }
+                
+                this.updateStatus();
+                this.updateModeUI();
+            }
+
+            updateStatus() {
+                const statusEl = document.getElementById('status');
+                if (this.gameMode === 'pve') {
+                    if (this.currentPlayer === 'black') {
+                        statusEl.textContent = '黑棋回合（你）';
+                    } else {
+                        statusEl.textContent = '白棋回合（AI 思考中...）';
+                    }
+                } else {
+                    const playerName = this.currentPlayer === 'black' ? '黑棋' : '白棋';
+                    statusEl.textContent = `${playerName}回合`;
+                }
             }
 
             makeMove(index) {
@@ -625,10 +687,10 @@
                 }
 
                 this.currentPlayer = this.currentPlayer === 'black' ? 'white' : 'black';
-                document.getElementById('status').textContent = 
-                    this.currentPlayer === 'black' ? '黑棋回合' : '白棋（AI）思考中...';
+                this.updateStatus();
 
-                if (this.currentPlayer === 'white') {
+                // PVE 模式下，AI 自动落子
+                if (this.gameMode === 'pve' && this.currentPlayer === 'white') {
                     setTimeout(() => this.aiMove(), GAME_CONFIG.game.aiDelay);
                 }
             }
@@ -833,28 +895,43 @@
                 const title = document.getElementById('resultTitle');
                 const message = document.getElementById('resultMessage');
 
-                // 记录战绩
-                const gameResult = result === 'black' ? 'win' : result === 'white' ? 'loss' : 'draw';
-                gameStats.record(gameResult);
-                this.updateStatsDisplay();
+                // 记录战绩（仅 PVE 模式）
+                if (this.gameMode === 'pve') {
+                    const gameResult = result === 'black' ? 'win' : result === 'white' ? 'loss' : 'draw';
+                    gameStats.record(gameResult);
+                    this.updateStatsDisplay();
+                }
 
+                // 根据模式和结果设置消息
                 if (result === 'black') {
                     overlay.classList.add('active', 'win');
-                    title.textContent = '🎉 恭喜你！';
-                    message.textContent = '你战胜了 AI！太厉害了！';
+                    if (this.gameMode === 'pve') {
+                        title.textContent = '🎉 恭喜你！';
+                        message.textContent = '你战胜了 AI！太厉害了！';
+                        if (this.autoSubmit) this.submitResult('win');
+                    } else {
+                        title.textContent = '🎉 黑棋获胜！';
+                        message.textContent = '恭喜黑棋玩家！';
+                    }
                     this.createParticles();
-                    if (this.autoSubmit) this.submitResult('win');
                 } else if (result === 'white') {
                     overlay.classList.add('active', 'lose');
-                    title.textContent = '💪 再接再厉！';
-                    message.textContent = 'AI 获胜了，继续挑战吧！';
+                    if (this.gameMode === 'pve') {
+                        title.textContent = '💪 再接再厉！';
+                        message.textContent = 'AI 获胜了，继续挑战吧！';
+                        if (this.autoSubmit) this.submitResult('loss');
+                    } else {
+                        title.textContent = '🎉 白棋获胜！';
+                        message.textContent = '恭喜白棋玩家！';
+                    }
                     this.createParticles();
-                    if (this.autoSubmit) this.submitResult('loss');
                 } else {
                     overlay.classList.add('active');
                     title.textContent = '🤝 平局！';
-                    message.textContent = '棋逢对手，再来一局！';
-                    if (this.autoSubmit) this.submitResult('draw');
+                    message.textContent = this.gameMode === 'pve' ? '棋逢对手，再来一局！' : '双方势均力敌！';
+                    if (this.gameMode === 'pve' && this.autoSubmit) {
+                        this.submitResult('draw');
+                    }
                 }
             }
 
@@ -892,8 +969,8 @@
                         return;
                     }
 
-                    // 提交游戏结果
-                    await this.github.submitGameResult(result, this.moveCount, duration);
+                    // 提交游戏结果（包含游戏模式）
+                    await this.github.submitGameResult(result, this.moveCount, duration, this.gameMode, this.difficulty);
                     
                     // 更新统计
                     await this.github.updateStats(gameStats);
