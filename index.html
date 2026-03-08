@@ -3,50 +3,814 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>五子棋 - Gomoku</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>五子棋 - 智能对战版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            background: rgba(255,255,255,0.95);
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        select, button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        select {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        select:hover {
+            background: #e0e0e0;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .game-container {
+            background: rgba(255,255,255,0.95);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 40px);
+            grid-template-rows: repeat(15, 40px);
+            gap: 0;
+            background: #dcb35c;
+            border: 3px solid #8b6914;
+            position: relative;
+        }
+
+        .cell {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .cell::before, .cell::after {
+            content: '';
+            position: absolute;
+            background: #8b6914;
+        }
+
+        .cell::before {
+            width: 100%;
+            height: 1px;
+            top: 50%;
+        }
+
+        .cell::after {
+            width: 1px;
+            height: 100%;
+            left: 50%;
+        }
+
+        .cell:first-child::before, .cell:nth-child(15n+1)::before {
+            width: 50%;
+            left: 50%;
+        }
+
+        .cell:nth-child(-n+15)::after, .cell:nth-child(15n)::after {
+            height: 50%;
+            top: 50%;
+        }
+
+        .stone {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            position: relative;
+            z-index: 10;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            animation: placeStone 0.3s ease-out;
+        }
+
+        @keyframes placeStone {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .stone.black {
+            background: radial-gradient(circle at 30% 30%, #666, #000);
+        }
+
+        .stone.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #ccc);
+        }
+
+        .stone.last {
+            box-shadow: 0 0 10px 3px #ff6b6b;
+        }
+
+        .status-bar {
+            margin-top: 20px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .status {
+            padding: 15px 30px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .stats {
+            padding: 15px 30px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 10px;
+            font-size: 16px;
+            color: #333;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .stats span {
+            margin: 0 10px;
+        }
+
+        .stats .win { color: #22c55e; }
+        .stats .loss { color: #ef4444; }
+        .stats .draw { color: #f59e0b; }
+
+        /* 全屏动效 */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+            z-index: 1000;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .overlay.win {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .overlay.lose {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .overlay-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            text-align: center;
+            color: white;
+        }
+
+        .overlay.active .overlay-content {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .overlay-content h2 {
+            font-size: 72px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .overlay-content p {
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+
+        .overlay-content button {
+            font-size: 20px;
+            padding: 15px 40px;
+            background: white;
+            color: #667eea;
+            margin: 0 10px;
+        }
+
+        .overlay-content button:hover {
+            background: #f0f0f0;
+        }
+
+        /* 粒子效果 */
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            animation: float 3s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* 自动提交提示 */
+        .auto-submit-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            padding: 10px 20px;
+            border-radius: 10px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 100;
+        }
+
+        .auto-submit-indicator.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 配置面板 */
+        #configPanel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .config-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            min-width: 400px;
+        }
+
+        .config-content h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .button-group button {
+            flex: 1;
+        }
+
+        #configStatus {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #configStatus.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        #configStatus.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* 提示信息 */
+        .hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.9);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #666;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🎮 五子棋</h1>
-        
-        <!-- 游戏控制区 -->
-        <div class="controls">
-            <div class="mode-selector">
-                <label>游戏模式：</label>
-                <select id="gameMode">
-                    <option value="pvp">双人对战</option>
-                    <option value="pve" selected>人机对战</option>
-                </select>
-            </div>
-            
-            <div class="game-info">
-                <span id="currentPlayer">当前：黑棋</span>
-                <span id="gameStatus"></span>
-            </div>
-            
-            <button id="restartBtn" class="btn">重新开始</button>
+    <h1>🎮 五子棋 - 智能对战版</h1>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label for="difficulty">难度选择：</label>
+            <select id="difficulty">
+                <option value="easy">简单 🌟</option>
+                <option value="medium" selected>中等 🌟🌟</option>
+                <option value="hard">困难 🌟🌟🌟</option>
+            </select>
         </div>
-        
-        <!-- 棋盘容器 -->
-        <div class="board-container">
-            <canvas id="board" width="600" height="600"></canvas>
+        <div class="control-group">
+            <label for="autoSubmit">自动提交 GitHub：</label>
+            <select id="autoSubmit">
+                <option value="off">关闭</option>
+                <option value="on" selected>开启</option>
+            </select>
         </div>
-        
-        <!-- 游戏说明 -->
-        <div class="instructions">
-            <h3>游戏规则：</h3>
-            <ul>
-                <li>黑棋先行，双方轮流落子</li>
-                <li>先连成五子（横、竖、斜）者获胜</li>
-                <li>点击棋盘交叉点落子</li>
-            </ul>
+        <button onclick="game.reset()">🔄 新游戏</button>
+        <button onclick="gameStats.reset(); location.reload();">📊 重置统计</button>
+    </div>
+
+    <div class="game-container">
+        <div class="board" id="board"></div>
+    </div>
+
+    <div class="status-bar">
+        <div class="status" id="status">黑棋先行，请落子！</div>
+        <div class="stats" id="stats">
+            <span class="win">✅ 胜：<b id="winCount">0</b></span>
+            <span class="loss">❌ 负：<b id="lossCount">0</b></span>
+            <span class="draw">🤝 平：<b id="drawCount">0</b></span>
+            <span>📈 胜率：<b id="winRate">0%</b></span>
         </div>
     </div>
-    
-    <script src="js/board.js"></script>
-    <script src="js/ai.js"></script>
-    <script src="js/game.js"></script>
-    <script src="js/main.js"></script>
+
+    <div class="auto-submit-indicator" id="autoSubmitIndicator">
+        <div class="spinner"></div>
+        <span>正在提交到 GitHub...</span>
+    </div>
+
+    <!-- 获胜/失败动效 -->
+    <div class="overlay" id="overlay">
+        <div class="particles" id="particles"></div>
+        <div class="overlay-content">
+            <h2 id="resultTitle">🎉 恭喜你！</h2>
+            <p id="resultMessage">你战胜了 AI！太厉害了！</p>
+            <button onclick="game.reset()">再来一局</button>
+            <button onclick="game.showStats()">📊 查看详细统计</button>
+        </div>
+    </div>
+
+    <div class="hint">按 <b>C</b> 键打开 GitHub 配置</div>
+
+    <script src="config.js"></script>
+    <script>
+        class Gomoku {
+            constructor() {
+                this.boardSize = GAME_CONFIG.game.boardSize;
+                this.board = [];
+                this.currentPlayer = 'black';
+                this.gameOver = false;
+                this.difficulty = 'medium';
+                this.autoSubmit = true;
+                this.lastMove = null;
+                this.moveCount = 0;
+                this.startTime = null;
+                this.github = new GitHubAPI();
+                this.init();
+            }
+
+            init() {
+                this.createBoard();
+                this.bindEvents();
+                this.reset();
+                this.updateStatsDisplay();
+                console.log('🎮 五子棋游戏已启动');
+                console.log('💡 按 C 键打开 GitHub 配置面板');
+            }
+
+            createBoard() {
+                const boardEl = document.getElementById('board');
+                boardEl.innerHTML = '';
+                for (let i = 0; i < this.boardSize * this.boardSize; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.dataset.index = i;
+                    boardEl.appendChild(cell);
+                }
+            }
+
+            bindEvents() {
+                document.getElementById('board').addEventListener('click', (e) => {
+                    const cell = e.target.closest('.cell');
+                    if (cell && !this.gameOver) {
+                        const index = parseInt(cell.dataset.index);
+                        this.makeMove(index);
+                    }
+                });
+
+                document.getElementById('difficulty').addEventListener('change', (e) => {
+                    this.difficulty = e.target.value;
+                    this.reset();
+                });
+
+                document.getElementById('autoSubmit').addEventListener('change', (e) => {
+                    this.autoSubmit = e.target.value === 'on';
+                });
+            }
+
+            reset() {
+                this.board = Array(this.boardSize * this.boardSize).fill(null);
+                this.currentPlayer = 'black';
+                this.gameOver = false;
+                this.lastMove = null;
+                this.moveCount = 0;
+                this.startTime = new Date();
+                
+                document.querySelectorAll('.cell').forEach(cell => {
+                    cell.innerHTML = '';
+                });
+                
+                document.getElementById('overlay').classList.remove('active', 'win', 'lose');
+                document.getElementById('status').textContent = '黑棋先行，请落子！';
+            }
+
+            makeMove(index) {
+                if (this.board[index] || this.gameOver) return;
+
+                this.board[index] = this.currentPlayer;
+                this.updateCell(index);
+                this.lastMove = index;
+                this.moveCount++;
+
+                if (this.checkWin(index)) {
+                    this.endGame(this.currentPlayer);
+                    return;
+                }
+
+                if (this.board.every(cell => cell !== null)) {
+                    this.endGame('draw');
+                    return;
+                }
+
+                this.currentPlayer = this.currentPlayer === 'black' ? 'white' : 'black';
+                document.getElementById('status').textContent = 
+                    this.currentPlayer === 'black' ? '黑棋回合' : '白棋（AI）思考中...';
+
+                if (this.currentPlayer === 'white') {
+                    setTimeout(() => this.aiMove(), GAME_CONFIG.game.aiDelay);
+                }
+            }
+
+            updateCell(index) {
+                const cell = document.querySelector(`[data-index="${index}"]`);
+                const stone = document.createElement('div');
+                stone.className = `stone ${this.board[index]}`;
+                if (this.lastMove === index) {
+                    stone.classList.add('last');
+                }
+                cell.innerHTML = '';
+                cell.appendChild(stone);
+
+                document.querySelectorAll('.stone.last').forEach(s => {
+                    if (s !== stone) s.classList.remove('last');
+                });
+            }
+
+            aiMove() {
+                if (this.gameOver) return;
+
+                const move = this.getBestMove();
+                if (move !== null) {
+                    this.makeMove(move);
+                }
+            }
+
+            getBestMove() {
+                const scores = [];
+                const availableMoves = this.board
+                    .map((cell, i) => cell === null ? i : -1)
+                    .filter(i => i !== -1);
+
+                if (availableMoves.length === 0) return null;
+
+                for (const move of availableMoves) {
+                    scores[move] = this.evaluateMove(move);
+                }
+
+                const difficultyConfig = GAME_CONFIG.difficulty[this.difficulty];
+                const maxScore = Math.max(...scores);
+                const bestMoves = scores
+                    .map((score, i) => score >= maxScore - difficultyConfig.randomFactor ? i : -1)
+                    .filter(i => i !== -1);
+
+                return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+            }
+
+            evaluateMove(move) {
+                let score = 0;
+                
+                this.board[move] = 'white';
+                score += this.evaluatePosition(move, 'white') * 1.2;
+                
+                this.board[move] = 'black';
+                score += this.evaluatePosition(move, 'black');
+                
+                this.board[move] = null;
+                
+                const center = Math.floor(this.boardSize * this.boardSize / 2);
+                const distance = Math.abs(move - center);
+                score += (225 - distance) / 10;
+
+                return score;
+            }
+
+            evaluatePosition(move, player) {
+                let score = 0;
+                const directions = [
+                    [1, 0],
+                    [0, 1],
+                    [1, 1],
+                    [1, -1]
+                ];
+
+                const row = Math.floor(move / this.boardSize);
+                const col = move % this.boardSize;
+
+                for (const [dx, dy] of directions) {
+                    let count = 1;
+                    let openEnds = 0;
+
+                    for (let i = 1; i < 5; i++) {
+                        const newRow = row + dy * i;
+                        const newCol = col + dx * i;
+                        if (newRow < 0 || newRow >= this.boardSize || newCol < 0 || newCol >= this.boardSize) break;
+                        const idx = newRow * this.boardSize + newCol;
+                        if (this.board[idx] === player) count++;
+                        else if (this.board[idx] === null) { openEnds++; break; }
+                        else break;
+                    }
+
+                    for (let i = 1; i < 5; i++) {
+                        const newRow = row - dy * i;
+                        const newCol = col - dx * i;
+                        if (newRow < 0 || newRow >= this.boardSize || newCol < 0 || newCol >= this.boardSize) break;
+                        const idx = newRow * this.boardSize + newCol;
+                        if (this.board[idx] === player) count++;
+                        else if (this.board[idx] === null) { openEnds++; break; }
+                        else break;
+                    }
+
+                    if (count >= 5) score += 10000;
+                    else if (count === 4 && openEnds === 2) score += 5000;
+                    else if (count === 4 && openEnds === 1) score += 1000;
+                    else if (count === 3 && openEnds === 2) score += 500;
+                    else if (count === 3 && openEnds === 1) score += 100;
+                    else if (count === 2 && openEnds === 2) score += 50;
+                    else if (count === 2 && openEnds === 1) score += 10;
+                }
+
+                return score;
+            }
+
+            checkWin(lastMove) {
+                const row = Math.floor(lastMove / this.boardSize);
+                const col = lastMove % this.boardSize;
+                const player = this.board[lastMove];
+
+                const directions = [
+                    [1, 0], [0, 1], [1, 1], [1, -1]
+                ];
+
+                for (const [dx, dy] of directions) {
+                    let count = 1;
+
+                    for (let i = 1; i < 5; i++) {
+                        const newRow = row + dy * i;
+                        const newCol = col + dx * i;
+                        if (newRow < 0 || newRow >= this.boardSize || newCol < 0 || newCol >= this.boardSize) break;
+                        if (this.board[newRow * this.boardSize + newCol] === player) count++;
+                        else break;
+                    }
+
+                    for (let i = 1; i < 5; i++) {
+                        const newRow = row - dy * i;
+                        const newCol = col - dx * i;
+                        if (newRow < 0 || newRow >= this.boardSize || newCol < 0 || newCol >= this.boardSize) break;
+                        if (this.board[newRow * this.boardSize + newCol] === player) count++;
+                        else break;
+                    }
+
+                    if (count >= 5) return true;
+                }
+
+                return false;
+            }
+
+            endGame(result) {
+                this.gameOver = true;
+                const overlay = document.getElementById('overlay');
+                const title = document.getElementById('resultTitle');
+                const message = document.getElementById('resultMessage');
+
+                // 记录战绩
+                const gameResult = result === 'black' ? 'win' : result === 'white' ? 'loss' : 'draw';
+                gameStats.record(gameResult);
+                this.updateStatsDisplay();
+
+                if (result === 'black') {
+                    overlay.classList.add('active', 'win');
+                    title.textContent = '🎉 恭喜你！';
+                    message.textContent = '你战胜了 AI！太厉害了！';
+                    this.createParticles();
+                    if (this.autoSubmit) this.submitResult('win');
+                } else if (result === 'white') {
+                    overlay.classList.add('active', 'lose');
+                    title.textContent = '💪 再接再厉！';
+                    message.textContent = 'AI 获胜了，继续挑战吧！';
+                    this.createParticles();
+                    if (this.autoSubmit) this.submitResult('loss');
+                } else {
+                    overlay.classList.add('active');
+                    title.textContent = '🤝 平局！';
+                    message.textContent = '棋逢对手，再来一局！';
+                    if (this.autoSubmit) this.submitResult('draw');
+                }
+            }
+
+            createParticles() {
+                const container = document.getElementById('particles');
+                container.innerHTML = '';
+                for (let i = 0; i < GAME_CONFIG.ui.particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = Math.random() * 100 + '%';
+                    particle.style.animationDelay = Math.random() * 3 + 's';
+                    particle.style.animationDuration = (2 + Math.random() * 2) + 's';
+                    container.appendChild(particle);
+                }
+            }
+
+            updateStatsDisplay() {
+                document.getElementById('winCount').textContent = gameStats.data.wins;
+                document.getElementById('lossCount').textContent = gameStats.data.losses;
+                document.getElementById('drawCount').textContent = gameStats.data.draws;
+                document.getElementById('winRate').textContent = gameStats.getWinRate() + '%';
+            }
+
+            async submitResult(result) {
+                const indicator = document.getElementById('autoSubmitIndicator');
+                indicator.classList.add('active');
+
+                const duration = Math.floor((new Date() - this.startTime) / 1000);
+                
+                try {
+                    // 检查配置
+                    if (!await this.github.checkConfig()) {
+                        console.warn('⚠️ GitHub 未配置，结果仅本地保存');
+                        indicator.classList.remove('active');
+                        return;
+                    }
+
+                    // 提交游戏结果
+                    await this.github.submitGameResult(result, this.moveCount, duration);
+                    
+                    // 更新统计
+                    await this.github.updateStats(gameStats);
+                    
+                    console.log('✅ 游戏结果已提交到 GitHub');
+                } catch (error) {
+                    console.error('❌ 提交失败:', error.message);
+                } finally {
+                    setTimeout(() => {
+                        indicator.classList.remove('active');
+                    }, 1000);
+                }
+            }
+
+            showStats() {
+                alert(`📊 战绩统计\n\n` +
+                      `总对局：${gameStats.data.totalGames}\n` +
+                      `胜利：${gameStats.data.wins}\n` +
+                      `失败：${gameStats.data.losses}\n` +
+                      `平局：${gameStats.data.draws}\n` +
+                      `胜率：${gameStats.getWinRate()}%\n` +
+                      `当前连胜：${gameStats.data.winStreak}\n` +
+                      `最佳连胜：${gameStats.data.bestWinStreak}`);
+            }
+        }
+
+        // 启动游戏
+        const game = new Gomoku();
+    </script>
 </body>
 </html>

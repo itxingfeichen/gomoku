@@ -1,0 +1,11 @@
+# 五子棋游戏数据
+
+# 忽略本地配置
+config.local.js
+
+# 忽略游戏结果（如果需要公开可以删除这行）
+game-results/
+
+# 系统文件
+.DS_Store
+Thumbs.db

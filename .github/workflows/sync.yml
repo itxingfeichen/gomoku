@@ -1,0 +1,25 @@
+name: Sync Game Stats
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'stats.json'
+      - 'game-results/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Display Stats
+        run: |
+          echo "📊 游戏统计"
+          if [ -f stats.json ]; then
+            cat stats.json
+          fi
+      
+      - name: Count Games
+        run: |
+          echo "总游戏次数：$(ls -1 game-results/*.json 2>/dev/null | wc -l)"
