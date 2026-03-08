@@ -643,7 +643,15 @@
                 });
                 
                 document.getElementById('overlay').classList.remove('active', 'win', 'lose');
+                
+                // 确保 gameMode 正确设置
+                const modeSelect = document.getElementById('gameMode');
+                if (modeSelect) {
+                    this.gameMode = modeSelect.value;
+                }
+                
                 this.updateStatus();
+                this.updateModeUI();
             }
 
             updateStatus() {
