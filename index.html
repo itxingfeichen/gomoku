@@ -663,9 +663,6 @@
             makeMove(index) {
                 if (this.board[index] || this.gameOver) return;
 
-                // PVE 模式下，只有黑棋（玩家）可以主动落子
-                if (this.gameMode === 'pve' && this.currentPlayer !== 'black') return;
-
                 this.board[index] = this.currentPlayer;
                 this.updateCell(index);
                 this.lastMove = index;
